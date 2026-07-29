@@ -41,5 +41,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# playwright
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
+
 # claude code (local settings and per-user skill symlinks)
 .claude/
