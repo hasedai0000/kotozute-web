@@ -26,6 +26,7 @@ cp .env.example .env
 | `NEXT_PUBLIC_APP_URL` | フロント自身の公開 URL（既定 `http://localhost:3000`） |
 | `NEXT_PUBLIC_API_URL` | ブラウザから叩く API URL |
 | `API_URL` | サーバー（SSR / Route Handler）から叩く API URL |
+| `OPENAPI_URL` | `npm run generate:api` が読み込む OpenAPI 仕様の URL または相対パス。未設定時は `openapi/openapi.dummy.json` を使う |
 
 ### 2. npm で起動（フロント単体）
 
@@ -53,3 +54,23 @@ docker compose --profile api up
 | `npm run dev` | 開発サーバ起動 |
 | `npm run build` | 本番ビルド（standalone 出力） |
 | `npm run lint` | Lint |
+| `npm run test` | Vitest（単体テスト） |
+| `npm run test:e2e` | Playwright（E2E） |
+| `npm run generate:api` | OpenAPI → `src/types/generated/api.ts` を生成（`OPENAPI_URL` 未設定時はダミー spec） |
+
+## API 型の生成
+
+バックエンド `kotozute-api`（Laravel + Scramble）が公開する OpenAPI 仕様から、TS 型と型付き fetch クライアントを自動生成します。
+
+```bash
+# ダミー spec で生成（オフラインでも動作）
+npm run generate:api
+
+# 実 spec で生成（例）
+OPENAPI_URL=http://localhost:8000/docs/api.json npm run generate:api
+```
+
+- 出力先: `src/types/generated/api.ts`
+- **この生成物は手編集禁止**（`OPENAPI_URL` を差し替えて再生成してください）。
+- 生成物は git 管理します（ESLint / prettier からは除外）。
+- 型付きクライアントは `src/lib/api/openapi.ts` の `apiClient` として初期化済み。TanStack Query の `queryFn` / `mutationFn` からは常に `unwrap()` を通し、エラーは `ApiError` として throw で扱ってください。

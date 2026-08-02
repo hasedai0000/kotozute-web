@@ -57,6 +57,23 @@ const parseFields = (
   return Object.keys(result).length > 0 ? result : undefined;
 };
 
+export function errorFromParsed(
+  status: number,
+  body: unknown,
+  fallbackMessage = "Request failed",
+): ApiError {
+  const parsed = (isRecord(body) ? body : {}) as LaravelErrorBody;
+
+  const message =
+    typeof parsed.message === "string" && parsed.message.length > 0
+      ? parsed.message
+      : fallbackMessage;
+  const code = typeof parsed.code === "string" ? parsed.code : undefined;
+  const fields = parseFields(parsed.errors);
+
+  return new ApiError({ status, message, code, fields });
+}
+
 export async function fromResponse(res: Response): Promise<ApiError> {
   const fallbackMessage = res.statusText || "Request failed";
   const contentType = res.headers.get("content-type") ?? "";
@@ -65,19 +82,12 @@ export async function fromResponse(res: Response): Promise<ApiError> {
     return new ApiError({ status: res.status, message: fallbackMessage });
   }
 
-  let body: LaravelErrorBody | null = null;
+  let body: unknown = null;
   try {
-    body = (await res.json()) as LaravelErrorBody;
+    body = await res.json();
   } catch {
     return new ApiError({ status: res.status, message: fallbackMessage });
   }
 
-  const message =
-    typeof body?.message === "string" && body.message.length > 0
-      ? body.message
-      : fallbackMessage;
-  const code = typeof body?.code === "string" ? body.code : undefined;
-  const fields = parseFields(body?.errors);
-
-  return new ApiError({ status: res.status, message, code, fields });
+  return errorFromParsed(res.status, body, fallbackMessage);
 }
