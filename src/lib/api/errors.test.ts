@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ApiError, fromResponse } from "./errors";
+import { ApiError, errorFromParsed, fromResponse } from "./errors";
 
 const jsonResponse = (
   status: number,
@@ -101,5 +101,33 @@ describe("fromResponse", () => {
 
     expect(err.status).toBe(500);
     expect(err.message).toBe("Internal Server Error");
+  });
+});
+
+describe("errorFromParsed", () => {
+  it("parses a Laravel 422 body into fields (openapi-fetch error 経由と同じ形)", () => {
+    const err = errorFromParsed(422, {
+      message: "The given data was invalid.",
+      errors: {
+        email: ["required"],
+      },
+    });
+
+    expect(err.status).toBe(422);
+    expect(err.message).toBe("The given data was invalid.");
+    expect(err.fields).toEqual({ email: ["required"] });
+  });
+
+  it("falls back to the fallback message when body is not a record", () => {
+    const err = errorFromParsed(500, "boom", "サーバーエラー");
+    expect(err.status).toBe(500);
+    expect(err.message).toBe("サーバーエラー");
+    expect(err.fields).toBeUndefined();
+    expect(err.code).toBeUndefined();
+  });
+
+  it("keeps optional code when provided", () => {
+    const err = errorFromParsed(401, { message: "auth", code: "unauthorized" });
+    expect(err.code).toBe("unauthorized");
   });
 });
