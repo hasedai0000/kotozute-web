@@ -1,0 +1,9 @@
+.next/
+out/
+build/
+coverage/
+node_modules/
+next-env.d.ts
+
+# OpenAPI から自動生成される型（手編集禁止）
+src/types/generated/
