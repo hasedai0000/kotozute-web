@@ -7,8 +7,8 @@ export default async function NotebookSectionPage({
 }) {
   const { section } = await params;
   return (
-    <main className="p-6">
+    <div>
       <h1 className="text-2xl font-semibold">セクション：{section}</h1>
-    </main>
+    </div>
   );
 }
