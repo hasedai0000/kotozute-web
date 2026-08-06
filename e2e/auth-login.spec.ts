@@ -1,7 +1,12 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
-// LP・middleware・実 API を巻き込まないため、
-// /sanctum/csrf-cookie と /login と /user はすべてブラウザ側で page.route() スタブする。
+// フロントは NEXT_PUBLIC_API_URL の有無で送信先が変わる:
+//  - 設定あり: `http://localhost:8000/api/login`（ローカル開発）
+//  - 未設定  : `http://localhost:3000/login`（CI では .env が無い）
+// どちらでも同じスタブがマッチするよう regex + method で絞り込む。
+const LOGIN_URL_RE = /\/(api\/)?login(\?|$)/;
+const USER_URL_RE = /\/(api\/)?user(\?|$)/;
+
 const stubApi = async (opts: {
   page: Page;
   loginStatus: number;
@@ -10,6 +15,7 @@ const stubApi = async (opts: {
 }) => {
   const { page, loginStatus, loginBody, userAfterLogin } = opts;
 
+  // CSRF プリフライト: `/sanctum/csrf-cookie` は `/api` プレフィクスの外。
   await page.route("**/sanctum/csrf-cookie", (route) =>
     route.fulfill({
       status: 204,
@@ -20,26 +26,30 @@ const stubApi = async (opts: {
     }),
   );
 
-  await page.route("**/api/login", (route) =>
-    route.fulfill({
+  // POST /login のみスタブする（同名パスの GET ページ描画にはフォールバック）。
+  await page.route(LOGIN_URL_RE, (route: Route) => {
+    if (route.request().method() !== "POST") {
+      return route.fallback();
+    }
+    return route.fulfill({
       status: loginStatus,
       contentType: "application/json",
       body: JSON.stringify(loginBody ?? {}),
-    }),
-  );
+    });
+  });
 
-  await page.route("**/api/user", (route) =>
-    route.fulfill({
+  await page.route(USER_URL_RE, (route: Route) => {
+    if (route.request().method() !== "GET") {
+      return route.fallback();
+    }
+    return route.fulfill({
       status: userAfterLogin ? 200 : 401,
       contentType: "application/json",
-      body: JSON.stringify(
-        userAfterLogin ?? { message: "Unauthenticated." },
-      ),
-    }),
-  );
+      body: JSON.stringify(userAfterLogin ?? { message: "Unauthenticated." }),
+    });
+  });
 
-  // middleware が (app) 配下をガードするので、ダッシュボード遷移時の応答も
-  // ネットワーク経由で来ないよう最小の HTML を返しておく。
+  // middleware が (app) 配下をガードするので、遷移時の応答は最小 HTML でスタブ。
   await page.route("**/dashboard**", (route) =>
     route.fulfill({
       status: 200,
