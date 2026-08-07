@@ -7,9 +7,12 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { useLogin } from "@/features/auth/api/useLogin";
+import { useRegister } from "@/features/auth/api/useRegister";
 import { sanitizeRedirect } from "@/features/auth/lib/redirect";
-import { loginSchema, type LoginInput } from "@/features/auth/schema/login";
+import {
+  registerSchema,
+  type RegisterInput,
+} from "@/features/auth/schema/register";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -22,12 +25,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 
-const CREDENTIALS_ERROR_MESSAGE =
-  "メールアドレスまたはパスワードが正しくありません";
 const GENERIC_ERROR_MESSAGE =
   "通信エラーが発生しました。時間をおいて再度お試しください";
 
-export function LoginForm() {
+// API のフィールド名（snake_case）を RHF のフィールド名（camelCase）に変換する。
+const API_FIELD_TO_FORM_FIELD: Record<string, keyof RegisterInput> = {
+  name: "name",
+  email: "email",
+  password: "password",
+  password_confirmation: "passwordConfirmation",
+};
+
+export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = useMemo(
@@ -36,33 +45,45 @@ export function LoginForm() {
   );
 
   const [formError, setFormError] = useState<string | null>(null);
-  const login = useLogin();
+  const register = useRegister();
 
-  const form = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+  const form = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      passwordConfirmation: "",
+    },
     mode: "onSubmit",
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
     setFormError(null);
     try {
-      await login.mutateAsync(values);
+      await register.mutateAsync(values);
       router.push(redirectTo);
     } catch (err) {
-      // 401 / 422 は認証失敗として扱い、フィールド別ではなく全体エラーに集約する
-      // （どちらが誤りか明かさない — screen_spec §5）。
       if (ApiError.isApiError(err)) {
-        if (err.status === 401 || err.status === 422 || err.status === 419) {
-          setFormError(CREDENTIALS_ERROR_MESSAGE);
-          return;
+        if (err.status === 422 && err.fields) {
+          let matched = false;
+          for (const [apiField, messages] of Object.entries(err.fields)) {
+            const formField = API_FIELD_TO_FORM_FIELD[apiField];
+            const message = messages[0];
+            if (formField && message) {
+              form.setError(formField, { message });
+              matched = true;
+            }
+          }
+          if (matched) return;
         }
       }
       toast.error(GENERIC_ERROR_MESSAGE);
+      setFormError(GENERIC_ERROR_MESSAGE);
     }
   });
 
-  const isSubmitting = login.isPending || form.formState.isSubmitting;
+  const isSubmitting = register.isPending || form.formState.isSubmitting;
 
   return (
     <Form {...form}>
@@ -79,6 +100,25 @@ export function LoginForm() {
 
         <FormField
           control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>お名前</FormLabel>
+              <FormControl>
+                <Input
+                  type="text"
+                  autoComplete="name"
+                  disabled={isSubmitting}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
@@ -86,7 +126,7 @@ export function LoginForm() {
               <FormControl>
                 <Input
                   type="email"
-                  autoComplete="username"
+                  autoComplete="email"
                   inputMode="email"
                   disabled={isSubmitting}
                   {...field}
@@ -106,7 +146,29 @@ export function LoginForm() {
               <FormControl>
                 <Input
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                  disabled={isSubmitting}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+              <p className="text-xs text-muted-foreground">
+                8文字以上でご設定ください。銀行の暗証番号やマイナンバー番号は保存しません。
+              </p>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="passwordConfirmation"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>パスワード（確認）</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  autoComplete="new-password"
                   disabled={isSubmitting}
                   {...field}
                 />
@@ -123,23 +185,16 @@ export function LoginForm() {
           disabled={isSubmitting}
           aria-busy={isSubmitting}
         >
-          {isSubmitting ? "ログイン中…" : "ログイン"}
+          {isSubmitting ? "登録中…" : "登録する"}
         </Button>
 
         <div className="flex flex-col items-center gap-2 pt-2 text-sm">
           <Link
-            href="/register"
+            href="/login"
             className="text-primary underline-offset-4 hover:underline"
           >
-            新規登録はこちら
+            既にアカウントをお持ちの方はこちら
           </Link>
-          <span
-            aria-disabled="true"
-            className="cursor-not-allowed text-muted-foreground"
-            title="準備中"
-          >
-            パスワードをお忘れの方（準備中）
-          </span>
         </div>
       </form>
     </Form>

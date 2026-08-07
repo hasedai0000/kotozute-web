@@ -5,24 +5,30 @@ import { queryKeys } from "@/lib/query/queryKeys";
 
 import { getCsrfCookie, readXsrfToken } from "./sanctum";
 
-import type { LoginInput } from "@/features/auth/schema/login";
+import type { RegisterInput } from "@/features/auth/schema/register";
 
-export async function loginRequest(input: LoginInput): Promise<void> {
+export async function registerRequest(input: RegisterInput): Promise<void> {
   const token = readXsrfToken();
-  await apiFetch<void>("/login", {
+  await apiFetch<void>("/register", {
     method: "POST",
-    json: input,
+    // Laravel Fortify は snake_case の password_confirmation を要求する。
+    json: {
+      name: input.name,
+      email: input.email,
+      password: input.password,
+      password_confirmation: input.passwordConfirmation,
+    },
     headers: token ? { "X-XSRF-TOKEN": token } : undefined,
   });
 }
 
-export function useLogin() {
+export function useRegister() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: LoginInput) => {
+    mutationFn: async (input: RegisterInput) => {
       await getCsrfCookie();
-      await loginRequest(input);
+      await registerRequest(input);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
