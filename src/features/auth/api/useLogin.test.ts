@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "@/lib/query/queryKeys";
 
-import { getCsrfCookie, loginRequest } from "./useLogin";
+import { getCsrfCookie } from "./sanctum";
+import { loginRequest } from "./useLogin";
 
 const jsonResponse = (
   status: number,

@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useLogin } from "@/features/auth/api/useLogin";
+import { sanitizeRedirect } from "@/features/auth/lib/redirect";
 import { loginSchema, type LoginInput } from "@/features/auth/schema/login";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,14 +26,6 @@ const CREDENTIALS_ERROR_MESSAGE =
   "メールアドレスまたはパスワードが正しくありません";
 const GENERIC_ERROR_MESSAGE =
   "通信エラーが発生しました。時間をおいて再度お試しください";
-
-// open redirect 対策: `/foo` のような同一オリジン相対パスのみ許可し、
-// `//evil.com` や `https://…` は弾く。
-const sanitizeRedirect = (raw: string | null): string | null => {
-  if (!raw) return null;
-  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
-  return raw;
-};
 
 export function LoginForm() {
   const router = useRouter();
