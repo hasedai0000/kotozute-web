@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogOut, MenuIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -23,6 +25,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLogout } from "@/features/auth/api/useLogout";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -126,6 +129,17 @@ function MobileNav({ pathname }: { pathname: string }) {
 
 function UserMenu() {
   const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const logout = useLogout();
+
+  const onLogout = async () => {
+    try {
+      await logout.mutateAsync();
+      router.push("/");
+    } catch {
+      toast.error("ログアウトに失敗しました");
+    }
+  };
 
   if (isLoading) {
     return <Skeleton className="size-8 rounded-full" aria-hidden="true" />;
@@ -154,25 +168,28 @@ function UserMenu() {
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-56">
-        <DropdownMenuLabel>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium text-foreground">
-              {user.name}
-            </span>
-            <span className="text-xs text-muted-foreground">{user.email}</span>
-          </div>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium text-foreground">
+                {user.name}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {user.email}
+              </span>
+            </div>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/settings">設定</Link>} />
         <DropdownMenuItem
           render={<Link href="/preview">プレビュー</Link>}
         />
         <DropdownMenuSeparator />
-        {/* TODO(#15 W2-03): useLogout に差し替える */}
         <DropdownMenuItem
-          onClick={() => {
-            console.warn("ログアウト機能は W2-03 (#15) で実装予定です");
-          }}
+          onClick={onLogout}
+          disabled={logout.isPending}
+          aria-busy={logout.isPending}
         >
           <LogOut />
           ログアウト
