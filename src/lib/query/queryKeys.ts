@@ -3,4 +3,10 @@ export const queryKeys = {
   auth: {
     me: ["auth", "me"] as const,
   },
+  notebook: {
+    summary: ["notebook", "summary"] as const,
+  },
+  family: {
+    members: ["family", "members"] as const,
+  },
 } as const;
