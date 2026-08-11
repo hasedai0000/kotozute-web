@@ -70,7 +70,7 @@ test.describe("logout", () => {
     await page.goto("/dashboard");
     // ダッシュボードが描画され、Header に UserMenu が出るまで待つ
     await expect(
-      page.getByRole("heading", { name: "ダッシュボード" }),
+      page.getByRole("heading", { name: "山田 太郎 さん、こんにちは" }),
     ).toBeVisible();
 
     // UserMenu を開いてログアウト
