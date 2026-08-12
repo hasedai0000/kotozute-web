@@ -6,8 +6,7 @@ import { useNoteSummary } from "@/features/notebook/api/useNoteSummary";
 import { SectionCard } from "@/features/notebook/components/SectionCard";
 import { SectionCardSkeleton } from "@/features/notebook/components/SectionCardSkeleton";
 import { SECTION_ORDER } from "@/features/notebook/constants/sections";
-
-import { MessagesCard } from "./MessagesCard";
+import { MessagesCard } from "@/features/messages/components/MessagesCard";
 
 const SKELETON_COUNT = SECTION_ORDER.length + 1; // 7 sections + messages
 
