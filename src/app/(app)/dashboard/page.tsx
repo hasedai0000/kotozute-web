@@ -1,11 +1,11 @@
 "use client";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { FamilyStatusCard } from "@/features/family/components/FamilyStatusCard";
+import { SectionGrid } from "@/features/notebook/components/SectionGrid";
 
 import { DashboardGreeting } from "./_components/DashboardGreeting";
-import { FamilyStatusCard } from "./_components/FamilyStatusCard";
 import { NextActionCard } from "./_components/NextActionCard";
-import { SectionGrid } from "./_components/SectionGrid";
 
 export default function DashboardPage() {
   const { user } = useAuth();
