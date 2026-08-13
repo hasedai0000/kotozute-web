@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { SectionBreadcrumb } from "@/features/notebook/components/SectionBreadcrumb";
+import { SectionForm } from "@/features/notebook/components/SectionForm";
 import { SectionNav } from "@/features/notebook/components/SectionNav";
 import { SectionProgressLive } from "@/features/notebook/components/SectionProgressLive";
 import { SectionSensitiveNotice } from "@/features/notebook/components/SectionSensitiveNotice";
@@ -40,6 +41,7 @@ export default async function NotebookSectionPage({
       </div>
       <p className="text-sm text-muted-foreground">{def.description}</p>
       {def.sensitive ? <SectionSensitiveNotice /> : null}
+      <SectionForm slug={section} />
       <SectionNav currentSlug={section} />
     </div>
   );
