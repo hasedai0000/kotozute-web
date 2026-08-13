@@ -10,14 +10,28 @@ export const SECTION_SLUGS = [
 
 export type SectionSlug = (typeof SECTION_SLUGS)[number];
 
+export type FieldKind = "text" | "textarea" | "date";
+
+export type FieldDefinition = {
+  key: string;
+  label: string;
+  kind: FieldKind;
+  maxLength?: number;
+  placeholder?: string;
+  note?: string;
+};
+
 export type SectionDefinition = {
   slug: SectionSlug;
   label: string;
   description: string;
   sensitive?: boolean;
-  fields: readonly string[];
+  fields: readonly FieldDefinition[];
   entryCategories: readonly string[];
 };
+
+// key の命名規則。Zod スキーマのプロパティ名になるため英数と _ のみ許可。
+export const FIELD_KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 
 export const SECTIONS: Record<SectionSlug, SectionDefinition> = {
   basic: {
@@ -25,7 +39,34 @@ export const SECTIONS: Record<SectionSlug, SectionDefinition> = {
     label: "基本のこと",
     description:
       "氏名・生年月日・血液型・緊急連絡先など、家族がすぐ確認したい基本の情報を残します。",
-    fields: [],
+    fields: [
+      {
+        key: "full_name",
+        label: "氏名",
+        kind: "text",
+        maxLength: 60,
+        placeholder: "山田 太郎",
+      },
+      {
+        key: "birthdate",
+        label: "生年月日",
+        kind: "date",
+      },
+      {
+        key: "blood_type",
+        label: "血液型",
+        kind: "text",
+        maxLength: 8,
+        placeholder: "A / B / O / AB（Rh も添えて可）",
+      },
+      {
+        key: "emergency_contact",
+        label: "緊急連絡先",
+        kind: "textarea",
+        maxLength: 200,
+        note: "氏名・続柄・電話番号など、家族がすぐ連絡できる相手を書いてください。",
+      },
+    ],
     entryCategories: [],
   },
   medical: {
