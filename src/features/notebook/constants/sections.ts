@@ -1,3 +1,8 @@
+// CategorySlug は categories.ts 側の CATEGORY_SLUGS から派生する型。
+// categories.ts が sections.ts の FIELD_KEY_PATTERN を実行時に参照するため、
+// こちらは import type にとどめて循環参照を避ける。
+import type { CategorySlug } from "./categories";
+
 export const SECTION_SLUGS = [
   "basic",
   "medical",
@@ -27,7 +32,7 @@ export type SectionDefinition = {
   description: string;
   sensitive?: boolean;
   fields: readonly FieldDefinition[];
-  entryCategories: readonly string[];
+  entryCategories: readonly CategorySlug[];
 };
 
 // key の命名規則。Zod スキーマのプロパティ名になるため英数と _ のみ許可。
