@@ -2,31 +2,10 @@ import { z, type ZodTypeAny } from "zod";
 
 import type { FieldDefinition } from "../constants/sections";
 
-// CLAUDE.md セキュリティ: パスワード・暗証番号・マイナンバー等は入力させない。
-// 「在りかのみ」の設計方針に反する key は buildSectionFieldsSchema で弾く。
-const FORBIDDEN_KEYS: readonly string[] = [
-  "password",
-  "pass",
-  "passwd",
-  "pin",
-  "pincode",
-  "cvv",
-  "cvc",
-  "mynumber",
-  "my_number",
-  "social_security",
-  "credit_card",
-  "card_number",
-  "secret",
-];
+import { assertNoSensitiveKey } from "./sensitive-keys";
 
-export function assertNoSensitiveKey(key: string): void {
-  if (FORBIDDEN_KEYS.includes(key)) {
-    throw new Error(
-      `[section-fields] "${key}" は機微情報のため単一項目としては受け付けません（CLAUDE.md セキュリティ）`,
-    );
-  }
-}
+// 既存の import 経路を保つため section-fields からも re-export する。
+export { assertNoSensitiveKey };
 
 // YYYY-MM-DD の緩い検証。厳密な日付整合性は保存側でも扱う。
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
