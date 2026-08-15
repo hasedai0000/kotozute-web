@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  FIELD_KEY_PATTERN,
   SECTIONS,
   SECTION_ORDER,
   SECTION_SLUGS,
@@ -34,5 +35,32 @@ describe("sections constants", () => {
   it("marks only money and digital as sensitive", () => {
     const sensitive = SECTION_SLUGS.filter((slug) => SECTIONS[slug].sensitive);
     expect(sensitive.sort()).toEqual(["digital", "money"]);
+  });
+
+  it("defines 4 single-item fields on basic (氏名/生年月日/血液型/緊急連絡先)", () => {
+    const keys = SECTIONS.basic.fields.map((f) => f.key);
+    expect(keys).toEqual([
+      "full_name",
+      "birthdate",
+      "blood_type",
+      "emergency_contact",
+    ]);
+  });
+
+  it("keeps all field keys within the safe pattern", () => {
+    for (const slug of SECTION_SLUGS) {
+      for (const field of SECTIONS[slug].fields) {
+        expect(field.key).toMatch(FIELD_KEY_PATTERN);
+      }
+    }
+  });
+
+  it("never exposes sensitive input keys (password / pin / mynumber ...)", () => {
+    const forbidden = ["password", "pin", "mynumber", "credit_card"];
+    for (const slug of SECTION_SLUGS) {
+      for (const field of SECTIONS[slug].fields) {
+        expect(forbidden).not.toContain(field.key);
+      }
+    }
   });
 });

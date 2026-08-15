@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -86,6 +86,20 @@ describe("NotebookSectionPage", () => {
       screen.getByRole("heading", { level: 1, name: "その他" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
+  it("basic: 単一項目フォーム（氏名など）が描画される", async () => {
+    fetchMock.mockImplementation(async (url) => {
+      const href = String(url);
+      if (href.includes("/note-fields/")) {
+        return jsonResponse(200, { fields: {} });
+      }
+      return jsonResponse(200, emptySummary);
+    });
+    await renderSection("basic");
+    await waitFor(() => {
+      expect(screen.getByLabelText("氏名")).toBeInTheDocument();
+    });
   });
 
   it("無効な slug は notFound() を呼ぶ (throws NEXT_HTTP_ERROR_FALLBACK;404)", async () => {
