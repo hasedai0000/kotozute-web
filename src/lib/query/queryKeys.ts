@@ -9,6 +9,8 @@ export const queryKeys = {
     summary: ["notebook", "summary"] as const,
     fields: (section: SectionSlug) =>
       ["notebook", "fields", section] as const,
+    entries: (section: SectionSlug) =>
+      ["notebook", "entries", section] as const,
   },
   family: {
     members: ["family", "members"] as const,
