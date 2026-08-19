@@ -203,6 +203,157 @@ test.describe("/notebook/money entries CRUD", () => {
     await expect(page.getByText("削除しました")).toBeVisible();
   });
 
+  // #24: 公開タイミング（レコード単位）— posthumous を選んで追加すると鍵バッジで描画される。
+  test("公開タイミング posthumous を選んで追加すると死後開示バッジが付く (#24)", async ({
+    page,
+    context,
+  }) => {
+    await setSessionCookie(context);
+    await stubApiWithEntries(page, (route) => {
+      const method = route.request().method();
+      if (method === "GET") {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ entries: [] }),
+        });
+      }
+      if (method === "POST") {
+        const payload = route.request().postDataJSON() ?? {};
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            id: "srv-p1",
+            category: payload.category,
+            values: payload.values,
+            timing: payload.timing ?? "always",
+          }),
+        });
+      }
+      return route.fallback();
+    });
+
+    const postRequest = page.waitForRequest(
+      (req) =>
+        ENTRIES_URL_RE.test(req.url()) && req.method() === "POST",
+    );
+
+    await page.goto("/notebook/money");
+    await page.getByRole("button", { name: /銀行口座 を追加/ }).click();
+    await page.getByLabel(/銀行名/).fill("秘密銀行");
+    await page.getByRole("radio", { name: /死後開示/ }).click();
+    await page.getByRole("button", { name: "保存" }).click();
+
+    const req = await postRequest;
+    expect(req.postDataJSON()?.timing).toBe("posthumous");
+
+    const card = page.getByRole("listitem").filter({ hasText: "秘密銀行" });
+    await expect(card).toBeVisible();
+    // 死後開示バッジ（アンバー + 鍵）が付いている
+    await expect(
+      card.getByLabel("死後開示"),
+    ).toBeVisible();
+  });
+
+  // #24: 既存 entry を編集で timing を切り替えると PATCH の body に timing が乗り、色が切り替わる。
+  test("編集で timing を always → posthumous に切り替えると PATCH に timing が乗り即座に色が変わる (#24)", async ({
+    page,
+    context,
+  }) => {
+    await setSessionCookie(context);
+    await stubApiWithEntries(page, (route) => {
+      const method = route.request().method();
+      if (method === "GET") {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            entries: [
+              {
+                id: "e1",
+                category: "bank_account",
+                values: { bank_name: "△銀行" },
+                timing: "always",
+              },
+            ],
+          }),
+        });
+      }
+      if (method === "PATCH") {
+        const payload = route.request().postDataJSON() ?? {};
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            id: "e1",
+            category: "bank_account",
+            values: payload.values ?? { bank_name: "△銀行" },
+            timing: payload.timing ?? "always",
+          }),
+        });
+      }
+      return route.fallback();
+    });
+
+    await page.goto("/notebook/money");
+    const card = page.getByRole("listitem").filter({ hasText: "△銀行" });
+    await expect(card).toBeVisible();
+    // 初期は常時共有バッジ
+    await expect(card.getByLabel("常時共有")).toBeVisible();
+
+    const patchRequest = page.waitForRequest(
+      (req) =>
+        ENTRIES_URL_RE.test(req.url()) && req.method() === "PATCH",
+    );
+
+    await page.getByRole("button", { name: /△銀行 を編集/ }).click();
+    await page.getByRole("radio", { name: /死後開示/ }).click();
+    await page.getByRole("button", { name: "保存" }).click();
+
+    const req = await patchRequest;
+    expect(req.postDataJSON()?.timing).toBe("posthumous");
+
+    // 楽観的更新でバッジが即座に切り替わる
+    await expect(card.getByLabel("死後開示")).toBeVisible();
+  });
+
+  // #24: 家族ロール想定（API が always のみ返す）→ 死後開示のカードは 1 件も描画されない。
+  // クライアント側で隠す実装は禁止（CLAUDE.md #8）なので、「API が返さない → 描画されない」を担保する。
+  test("API が always のみ返すと死後開示バッジのカードは描画されない (#24)", async ({
+    page,
+    context,
+  }) => {
+    await setSessionCookie(context);
+    await stubApiWithEntries(page, (route) => {
+      const method = route.request().method();
+      if (method === "GET") {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            entries: [
+              {
+                id: "e1",
+                category: "bank_account",
+                values: { bank_name: "公開銀行" },
+                timing: "always",
+              },
+            ],
+          }),
+        });
+      }
+      return route.fallback();
+    });
+
+    await page.goto("/notebook/money");
+    await expect(
+      page.getByRole("listitem").filter({ hasText: "公開銀行" }),
+    ).toBeVisible();
+    // 死後開示バッジは 1 つも描画されない
+    await expect(page.getByLabel("死後開示")).toHaveCount(0);
+  });
+
   test("削除失敗で楽観的削除が巻き戻る (DoD)", async ({ page, context }) => {
     await setSessionCookie(context);
     await stubApiWithEntries(page, (route) => {
