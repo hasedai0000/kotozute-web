@@ -44,6 +44,7 @@ export default async function NotebookSectionPage({
       {def.sensitive ? <SectionSensitiveNotice /> : null}
       <SectionForm slug={section} />
       <SectionEntries
+        section={section}
         categories={def.entryCategories}
         sensitive={def.sensitive}
       />
