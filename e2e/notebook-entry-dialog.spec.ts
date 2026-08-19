@@ -11,6 +11,7 @@ const USER_URL_RE = /\/(api\/)?user(\?|$)/;
 const SUMMARY_URL_RE = /\/(api\/)?note-summary(\?|$)/;
 const FAMILY_MEMBERS_URL_RE = /\/(api\/)?family\/members(\?|$)/;
 const FIELDS_URL_RE = /\/(api\/)?note-fields\/[a-z_]+(\?|$)/;
+const ENTRIES_URL_RE = /\/(api\/)?note-entries\/[a-z_]+(\/[^/?]+)?(\?|$)/;
 
 const emptySummary = {
   perSection: {
@@ -60,6 +61,33 @@ const stubApi = async (page: Page) => {
       contentType: "application/json",
       body: JSON.stringify({ fields: {} }),
     });
+  });
+
+  // note-entries: GET は空配列。POST/PATCH/DELETE は簡易にエコーで返す。
+  await page.route(ENTRIES_URL_RE, async (route: Route) => {
+    const method = route.request().method();
+    if (method === "GET") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ entries: [] }),
+      });
+    }
+    if (method === "POST") {
+      const req = route.request();
+      const payload = req.postDataJSON() ?? {};
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: `srv-${Date.now()}`,
+          category: payload.category,
+          values: payload.values ?? {},
+          timing: payload.timing ?? "always",
+        }),
+      });
+    }
+    return route.fallback();
   });
 };
 
