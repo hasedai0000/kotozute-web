@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forwardRef, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -44,23 +46,27 @@ import {
 } from "../schema/entry-fields";
 
 import { SectionSensitiveNotice } from "./SectionSensitiveNotice";
-
-// TODO(#23): 保存の主体はここに置かない。onSubmit を親に渡し、useAddEntry /
-// useUpdateEntry での楽観的更新と mutation は #23 で親側に実装する。
-// TODO(#24): レコード単位の timing 選択 UI は #24 で追加する。EntryDialog 側は
-// onSubmit の values にキーが増えても壊れないよう、Record<string, string> の
-// ままインターフェースを保つ。
+import { TimingBadge, type TimingVariant } from "./TimingBadge";
 
 export type EntryDialogMode = "create" | "edit";
+
+const TIMING_VALUES = ["always", "posthumous"] as const;
+const timingSchema = z.enum(TIMING_VALUES);
 
 export type EntryDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   category: CategorySlug;
   initial?: Record<string, string>;
-  onSubmit: (values: Record<string, string>) => void;
+  initialTiming?: TimingVariant;
+  onSubmit: (values: Record<string, string>, timing: TimingVariant) => void;
   sensitive?: boolean;
   mode?: EntryDialogMode;
+};
+
+type FormShape = {
+  values: Record<string, string>;
+  timing: TimingVariant;
 };
 
 export function EntryDialog({
@@ -68,20 +74,31 @@ export function EntryDialog({
   onOpenChange,
   category,
   initial,
+  initialTiming = "always",
   onSubmit,
   sensitive,
   mode = "create",
 }: EntryDialogProps) {
   const def = CATEGORIES[category];
 
-  const schema = useMemo(() => buildEntrySchema(category), [category]);
-  const defaults = useMemo(
-    () => buildEntryDefaultValues(category, initial),
-    [category, initial],
+  const formSchema = useMemo(
+    () =>
+      z.object({
+        values: buildEntrySchema(category),
+        timing: timingSchema,
+      }),
+    [category],
+  );
+  const defaults = useMemo<FormShape>(
+    () => ({
+      values: buildEntryDefaultValues(category, initial),
+      timing: initialTiming,
+    }),
+    [category, initial, initialTiming],
   );
 
-  const form = useForm<Record<string, string>>({
-    resolver: zodResolver(schema),
+  const form = useForm<FormShape>({
+    resolver: zodResolver(formSchema),
     defaultValues: defaults,
     mode: "onChange",
   });
@@ -91,12 +108,12 @@ export function EntryDialog({
     if (open) {
       form.reset(defaults);
     }
-    // defaults は category / initial から派生。open の立ち上がりで一度だけ反映する。
+    // defaults は category / initial / initialTiming から派生。open の立ち上がりで一度だけ反映する。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, category, initial]);
+  }, [open, category, initial, initialTiming]);
 
-  const handle = form.handleSubmit((values) => {
-    onSubmit(values);
+  const handle = form.handleSubmit((data) => {
+    onSubmit(data.values, data.timing);
     onOpenChange(false);
   });
 
@@ -122,7 +139,7 @@ export function EntryDialog({
               <FormField
                 key={f.key}
                 control={form.control}
-                name={f.key}
+                name={`values.${f.key}` as const}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
@@ -148,6 +165,32 @@ export function EntryDialog({
                 )}
               />
             ))}
+
+            <FormField
+              control={form.control}
+              name="timing"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>公開タイミング</FormLabel>
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={(v) => field.onChange(v)}
+                    aria-label="公開タイミング"
+                    className="gap-3"
+                  >
+                    <TimingOption
+                      value="always"
+                      description="家族がいつでも見られます。"
+                    />
+                    <TimingOption
+                      value="posthumous"
+                      description="解放されるまで家族には見えません。"
+                    />
+                  </RadioGroup>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </form>
         </Form>
         <DialogFooter>
@@ -158,6 +201,24 @@ export function EntryDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TimingOption({
+  value,
+  description,
+}: {
+  value: TimingVariant;
+  description: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3">
+      <RadioGroupItem value={value} className="mt-1" />
+      <div className="flex flex-col gap-1">
+        <TimingBadge variant={value} />
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+    </label>
   );
 }
 

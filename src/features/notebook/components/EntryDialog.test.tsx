@@ -9,12 +9,14 @@ import {
 } from "../constants/categories";
 
 import { EntryDialog } from "./EntryDialog";
+import type { TimingVariant } from "./TimingBadge";
 
 type HarnessProps = {
   category: CategorySlug;
   initial?: Record<string, string>;
+  initialTiming?: TimingVariant;
   sensitive?: boolean;
-  onSubmit: (values: Record<string, string>) => void;
+  onSubmit: (values: Record<string, string>, timing: TimingVariant) => void;
   startOpen?: boolean;
 };
 
@@ -22,6 +24,7 @@ type HarnessProps = {
 function Harness({
   category,
   initial,
+  initialTiming,
   sensitive,
   onSubmit,
   startOpen = true,
@@ -37,6 +40,7 @@ function Harness({
         onOpenChange={setOpen}
         category={category}
         initial={initial}
+        initialTiming={initialTiming}
         sensitive={sensitive}
         onSubmit={onSubmit}
       />
@@ -175,5 +179,76 @@ describe("EntryDialog — キャンセルと再オープン", () => {
 
     const reopened = screen.getByLabelText(/名前/) as HTMLInputElement;
     expect(reopened.value).toBe("");
+  });
+});
+
+// #24: レコード単位で公開タイミングを選ぶ UI と、その値が onSubmit に届くこと。
+describe("EntryDialog — 公開タイミング（timing）選択 (#24)", () => {
+  // base-ui の Radio.Root は role="radio" + aria-checked で状態を表現する。
+  // 非隠し要素で選択状態を検証する（hidden input ではなく button 側を見る）。
+  const findAlwaysRadio = () =>
+    screen.getByRole("radio", { name: /常時共有/ });
+  const findPosthumousRadio = () =>
+    screen.getByRole("radio", { name: /死後開示/ });
+
+  it("既定 timing は 'always' で、初期表示で 常時共有 の radio が選択済み", () => {
+    render(<Harness category="pet" onSubmit={() => undefined} />);
+    expect(findAlwaysRadio().getAttribute("aria-checked")).toBe("true");
+    expect(findPosthumousRadio().getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("initialTiming='posthumous' を渡すと 死後開示 が選択済み", () => {
+    render(
+      <Harness
+        category="pet"
+        initialTiming="posthumous"
+        onSubmit={() => undefined}
+      />,
+    );
+    expect(findPosthumousRadio().getAttribute("aria-checked")).toBe("true");
+    expect(findAlwaysRadio().getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("死後開示を選んで保存すると onSubmit(values, 'posthumous') が呼ばれる (DoD)", async () => {
+    const onSubmit = vi.fn();
+    render(<Harness category="pet" onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText(/名前/), {
+      target: { value: "ぽち" },
+    });
+    // Radio.Root は button として描画されるため、click で選択できる。
+    fireEvent.click(findPosthumousRadio());
+
+    await waitFor(() => {
+      expect(findPosthumousRadio().getAttribute("aria-checked")).toBe("true");
+    });
+
+    fireEvent.click(findSaveButton());
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "ぽち" }),
+      "posthumous",
+    );
+  });
+
+  it("既定のまま保存すると onSubmit(values, 'always') が呼ばれる（回帰）", async () => {
+    const onSubmit = vi.fn();
+    render(<Harness category="pet" onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText(/名前/), {
+      target: { value: "たま" },
+    });
+    fireEvent.click(findSaveButton());
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "たま" }),
+      "always",
+    );
   });
 });

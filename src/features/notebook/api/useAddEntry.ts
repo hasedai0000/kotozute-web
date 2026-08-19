@@ -11,7 +11,6 @@ import type { SectionSlug } from "../constants/sections";
 
 import type { NoteEntriesResponse, NoteEntry } from "./useEntries";
 
-// TODO(#24): timing の UI 選択は #24 で追加。当面は "always" を既定にする。
 export type AddEntryInput = {
   category: CategorySlug;
   values: Record<string, string>;
