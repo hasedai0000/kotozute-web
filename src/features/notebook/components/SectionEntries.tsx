@@ -86,11 +86,12 @@ export function SectionEntries({
           sensitive={sensitive}
           mode={editing ? "edit" : "create"}
           initial={editing?.values}
-          onSubmit={(values) => {
+          initialTiming={editing?.timing}
+          onSubmit={(values, timing) => {
             if (editing) {
-              update.mutate({ id: editing.id, values });
+              update.mutate({ id: editing.id, values, timing });
             } else {
-              add.mutate({ category: activeCategory, values });
+              add.mutate({ category: activeCategory, values, timing });
             }
           }}
         />
