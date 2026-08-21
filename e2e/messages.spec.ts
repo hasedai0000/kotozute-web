@@ -55,7 +55,13 @@ const stubApiWithMessages = async (page: Page, messages: MessagesHandler) => {
     });
   });
 
-  await page.route(MESSAGES_URL_RE, messages);
+  // /messages は Next.js のページ URL でもあり、API パスとも一致する。
+  // ページナビゲーション（document 要求）は素通しし、fetch/XHR のみを API として扱う。
+  await page.route(MESSAGES_URL_RE, (route: Route) => {
+    const type = route.request().resourceType();
+    if (type !== "fetch" && type !== "xhr") return route.fallback();
+    return messages(route);
+  });
 };
 
 const setSessionCookie = async (context: BrowserContext) => {
