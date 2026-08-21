@@ -17,5 +17,6 @@ export const queryKeys = {
   },
   messages: {
     list: ["messages", "list"] as const,
+    detail: (id: string) => ["messages", "detail", id] as const,
   },
 } as const;
