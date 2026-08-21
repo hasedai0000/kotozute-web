@@ -41,10 +41,12 @@ describe("MessagesList", () => {
     await waitFor(() => {
       expect(screen.getByText("まだ手紙がありません")).toBeInTheDocument();
     });
-    // ヘッダ + EmptyState の 2 箇所
-    expect(
-      screen.getAllByRole("button", { name: /手紙を書く/ }).length,
-    ).toBeGreaterThanOrEqual(1);
+    // CTA が /messages/new への Link として存在する（ヘッダ + EmptyState の 2 箇所）
+    const ctas = screen.getAllByRole("link", { name: /手紙を書く/ });
+    expect(ctas.length).toBeGreaterThanOrEqual(1);
+    for (const cta of ctas) {
+      expect(cta).toHaveAttribute("href", "/messages/new");
+    }
   });
 
   it("404 のとき EmptyState にフォールバックする（バック未実装時）", async () => {
@@ -77,6 +79,15 @@ describe("MessagesList", () => {
     expect(screen.getByText("息子へ")).toBeInTheDocument();
     expect(screen.getByText("常時共有")).toBeInTheDocument();
     expect(screen.getByText("死後開示")).toBeInTheDocument();
+
+    // カードごとに詳細画面への Link が張られている
+    expect(screen.getByRole("link", { name: "妻へ を読む" })).toHaveAttribute(
+      "href",
+      "/messages/m1",
+    );
+    expect(
+      screen.getByRole("link", { name: "息子へ を読む" }),
+    ).toHaveAttribute("href", "/messages/m2");
   });
 
   it("500 エラー時、EmptyState と再試行ボタンが描画される", async () => {
