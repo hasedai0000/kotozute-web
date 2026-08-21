@@ -95,7 +95,7 @@ test.describe("/messages 一覧", () => {
     await expect(page.getByText("まだ手紙がありません")).toBeVisible();
     // ヘッダ + EmptyState の 2 箇所に CTA
     await expect(
-      page.getByRole("button", { name: /手紙を書く/ }).first(),
+      page.getByRole("link", { name: /手紙を書く/ }).first(),
     ).toBeVisible();
   });
 
