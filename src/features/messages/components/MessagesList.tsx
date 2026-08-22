@@ -1,6 +1,7 @@
 "use client";
 
 import { Mail, Plus } from "lucide-react";
+import Link from "next/link";
 
 import { EmptyState } from "@/components/layout/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -12,13 +13,19 @@ import { MessageCard } from "./MessageCard";
 
 const SKELETON_COUNT = 3;
 
+const NewMessageLink = () => (
+  <Button
+    render={
+      <Link href="/messages/new">
+        <Plus aria-hidden="true" />
+        手紙を書く
+      </Link>
+    }
+  />
+);
+
 export function MessagesList() {
   const { data, isPending, isError, refetch } = useMessages();
-
-  // TODO(#26): MessageDialog を開くための onClick を配線する。
-  const openCreateDialog = () => {
-    /* noop */
-  };
 
   return (
     <section className="mx-auto flex w-full max-w-prose flex-col gap-6">
@@ -29,10 +36,7 @@ export function MessagesList() {
             言葉を残す場所。宛先を決めて、伝えたいことを綴ります。
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus aria-hidden="true" />
-          手紙を書く
-        </Button>
+        <NewMessageLink />
       </header>
 
       {isPending ? (
@@ -62,18 +66,14 @@ export function MessagesList() {
           icon={<Mail className="size-6" aria-hidden="true" />}
           title="まだ手紙がありません"
           description="宛先を決めて、伝えたいことを綴りましょう。"
-          action={
-            <Button onClick={openCreateDialog}>
-              <Plus aria-hidden="true" />
-              手紙を書く
-            </Button>
-          }
+          action={<NewMessageLink />}
         />
       ) : (
         <ul className="flex flex-col gap-4">
           {data.messages.map((m) => (
             <li key={m.id}>
               <MessageCard
+                id={m.id}
                 recipient={m.recipient}
                 body={m.body}
                 timing={m.timing}
