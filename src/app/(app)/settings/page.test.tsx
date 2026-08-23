@@ -10,6 +10,11 @@ import { AuthContext, type AuthContextValue } from "@/providers/AuthProvider";
 import SettingsPage from "./page";
 
 import type { NotePreferences } from "@/features/settings/schema/notePreferences";
+import type { NotificationPreferences } from "@/features/settings/schema/notifications";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+}));
 
 const renderPage = (role?: AuthRole) => {
   const client = new QueryClient({
@@ -26,6 +31,10 @@ const renderPage = (role?: AuthRole) => {
     defaultTiming: "always",
     gracePeriodDays: 7,
   });
+  client.setQueryData<NotificationPreferences>(
+    queryKeys.settings.notifications,
+    { reminderEnabled: false },
+  );
   const ctx: AuthContextValue = {
     user,
     isLoading: false,
@@ -51,25 +60,39 @@ describe("SettingsPage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("owner ロールでは公開タイミング既定と待機期間のセクションが表示される", () => {
+  it("owner ロールでは公開タイミング既定・待機期間・通知・データ・退会の全セクションが表示される", () => {
     renderPage("owner");
 
     expect(screen.getByText("公開タイミングの既定")).toBeInTheDocument();
     expect(screen.getByText("待機期間")).toBeInTheDocument();
+    expect(screen.getByText("通知")).toBeInTheDocument();
+    expect(screen.getByText("データ")).toBeInTheDocument();
+    expect(screen.getByText("退会")).toBeInTheDocument();
   });
 
-  it("role 未指定（owner 扱い）でも両セクションが表示される", () => {
+  it("role 未指定（owner 扱い）でも全セクションが表示される", () => {
     renderPage();
 
     expect(screen.getByText("公開タイミングの既定")).toBeInTheDocument();
     expect(screen.getByText("待機期間")).toBeInTheDocument();
+    expect(screen.getByText("通知")).toBeInTheDocument();
+    expect(screen.getByText("データ")).toBeInTheDocument();
+    expect(screen.getByText("退会")).toBeInTheDocument();
   });
 
-  it("family ロールでは公開タイミング既定と待機期間のセクションが表示されない", () => {
+  it("family ロールではノート設定（公開タイミング・待機期間・データ）が表示されない", () => {
     renderPage("family");
 
     expect(screen.queryByText("公開タイミングの既定")).not.toBeInTheDocument();
     expect(screen.queryByText("待機期間")).not.toBeInTheDocument();
+    expect(screen.queryByText("データ")).not.toBeInTheDocument();
+  });
+
+  it("family ロールでも通知と退会は表示される", () => {
+    renderPage("family");
+
+    expect(screen.getByText("通知")).toBeInTheDocument();
+    expect(screen.getByText("退会")).toBeInTheDocument();
   });
 
   it("プロフィール／パスワード変更はどのロールでも表示される", () => {
