@@ -21,5 +21,6 @@ export const queryKeys = {
   },
   settings: {
     notePreferences: ["settings", "notePreferences"] as const,
+    notifications: ["settings", "notifications"] as const,
   },
 } as const;
