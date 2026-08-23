@@ -19,4 +19,7 @@ export const queryKeys = {
     list: ["messages", "list"] as const,
     detail: (id: string) => ["messages", "detail", id] as const,
   },
+  settings: {
+    notePreferences: ["settings", "notePreferences"] as const,
+  },
 } as const;
