@@ -2,6 +2,8 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useResendInvite } from "@/features/family/api/useResendInvite";
+import { useRevokeInvite } from "@/features/family/api/useRevokeInvite";
 import { isExpired, type Invitation } from "@/features/family/api/useInvitations";
 
 type InvitationRowProps = {
@@ -12,6 +14,7 @@ type InvitationRowProps = {
 const jaDate = new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium" });
 
 function formatExpiresAt(iso: string): string {
+  if (!iso) return "";
   const t = Date.parse(iso);
   if (!Number.isFinite(t)) return iso;
   return jaDate.format(new Date(t));
@@ -19,6 +22,11 @@ function formatExpiresAt(iso: string): string {
 
 export function InvitationRow({ invitation, canManage }: InvitationRowProps) {
   const expired = isExpired(invitation);
+  const resend = useResendInvite();
+  const revoke = useRevokeInvite();
+  const busy = resend.isPending || revoke.isPending;
+  const isOptimistic =
+    typeof invitation.id === "string" && invitation.id.startsWith("temp-");
 
   return (
     <li className="flex flex-col gap-3 rounded-lg border border-border bg-background px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -27,11 +35,13 @@ export function InvitationRow({ invitation, canManage }: InvitationRowProps) {
           {invitation.email}
         </p>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {expired ? (
+          {isOptimistic ? (
+            <span>送信中…</span>
+          ) : expired ? (
             <Badge variant="destructive">期限切れ</Badge>
-          ) : (
+          ) : invitation.expiresAt ? (
             <span>有効期限: {formatExpiresAt(invitation.expiresAt)}</span>
-          )}
+          ) : null}
         </div>
       </div>
       {canManage ? (
@@ -39,20 +49,20 @@ export function InvitationRow({ invitation, canManage }: InvitationRowProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              // TODO(#32): useResendInvite を接続する
-            }}
+            disabled={busy || isOptimistic}
+            aria-busy={resend.isPending}
+            onClick={() => resend.mutate({ id: invitation.id })}
           >
-            再送
+            {resend.isPending ? "再送中…" : "再送"}
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              // TODO(#32): useRevokeInvite を接続する
-            }}
+            disabled={busy || isOptimistic}
+            aria-busy={revoke.isPending}
+            onClick={() => revoke.mutate({ id: invitation.id })}
           >
-            取り消し
+            {revoke.isPending ? "取り消し中…" : "取り消し"}
           </Button>
         </div>
       ) : null}
