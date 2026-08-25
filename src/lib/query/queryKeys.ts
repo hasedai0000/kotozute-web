@@ -14,6 +14,7 @@ export const queryKeys = {
   },
   family: {
     members: ["family", "members"] as const,
+    invitations: ["family", "invitations"] as const,
   },
   messages: {
     list: ["messages", "list"] as const,
