@@ -152,6 +152,13 @@ Issue「作業内容」の追加確認:
 - [ ] 招待メールと違うアカウントでログイン中の警告 — `invitedEmail !== me.email` で警告カードを描画、E2E シナリオ 2 で担保
 - [ ] 受諾を `audit_logs` へ書き込み — **バック側**が `POST /invitations/{token}/accept` の中で担う（フロントは POST を送るだけで自動記録される想定）
 
+## 実装中に判明したリスク
+
+- **RSC で verify する構成は Playwright の `page.route()` では E2E できない**（本 Issue 実装中の CI 失敗で発覚）。
+  - `verifyInvitation` は #34 の設計に従い RSC で fetch する。`page.route()` はブラウザ発のリクエストしか捕捉しないため、SSR fetch は素通り。CI 環境では `NEXT_PUBLIC_API_URL` 未設定のため SSR fetch が失敗し「一時的なエラー」画面が描画される → 参加ボタンが存在せず全 3 シナリオが落ちた。
+  - **本 Issue では E2E `e2e/invitation-accept.spec.ts` を削除**（ユーザー合意）。DoD「Playwright で 1 件のフル受諾シナリオ」は **#38 W4-08** に委ねる。#38 はもともと「記入 → 招待 → 別セッションで受諾 → family として閲覧」の end-to-end シナリオを担う Issue で、そこで**バックエンドフィクスチャ or SSR fetch 用のモックサーバ**を整備する必要がある。
+  - Vitest 側では受諾フローを網羅（`AcceptInvitationForm.test.tsx` で 9 ケース、`useAcceptInvitation.test.ts` で 7 ケース）。UI 層のロジック・分岐・遷移先は担保済み。
+
 ## リスク / 確認事項
 - **バック API 契約が未確定**：
   - **`POST /invitations/{token}/accept`**：エンドポイント名 / メソッド / レスポンス形式は仮定。実装が違う場合は `useAcceptInvitation` を合わせる。**要ユーザー確認**（バック Issue と同期）。
