@@ -1,25 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-// Sanctum のセッションクッキーは APP_NAME 由来で名前が変わる（既定は `laravel_session`）。
-// httpOnly クッキーの中身は middleware から読めないため、存在有無だけで一次防衛する。
-// 実際の認可は API 側の 401 で確定させる（後続 Issue で 401 自動リダイレクトを実装）。
-const SESSION_COOKIE_SUFFIX = "_session";
-const DEFAULT_SESSION_COOKIE = "laravel_session";
-
-const hasSessionCookie = (req: NextRequest): boolean => {
-  for (const cookie of req.cookies.getAll()) {
-    if (
-      cookie.name === DEFAULT_SESSION_COOKIE ||
-      cookie.name.endsWith(SESSION_COOKIE_SUFFIX)
-    ) {
-      return true;
-    }
-  }
-  return false;
-};
+import { hasSessionCookieFromCookies } from "@/lib/auth/session-cookie";
 
 export function middleware(req: NextRequest) {
-  if (hasSessionCookie(req)) {
+  if (hasSessionCookieFromCookies(req.cookies.getAll())) {
     return NextResponse.next();
   }
 
