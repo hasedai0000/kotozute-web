@@ -3,6 +3,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { AuthUser } from "@/features/auth/api/useMe";
+import { AuthContext, type AuthContextValue } from "@/providers/AuthProvider";
+
 import { MessagesList } from "./MessagesList";
 
 const jsonResponse = (status: number, body: unknown): Response =>
@@ -11,12 +14,33 @@ const jsonResponse = (status: number, body: unknown): Response =>
     headers: { "Content-Type": "application/json" },
   });
 
-const renderList = () => {
+const ownerUser: AuthUser = {
+  id: 1,
+  name: "Taro",
+  email: "a@b.c",
+  role: "owner",
+};
+
+const familyUser: AuthUser = {
+  id: 2,
+  name: "Hanako",
+  email: "h@b.c",
+  role: "family",
+};
+
+const renderList = (user: AuthUser | null = ownerUser) => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  const ctx: AuthContextValue = {
+    user,
+    isLoading: false,
+    refetch: async () => undefined,
+  };
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>
+      <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>
+    </QueryClientProvider>
   );
   return render(<MessagesList />, { wrapper });
 };
@@ -88,6 +112,36 @@ describe("MessagesList", () => {
     expect(
       screen.getByRole("link", { name: "息子へ を読む" }),
     ).toHaveAttribute("href", "/messages/m2");
+  });
+
+  it("family ロールでは『手紙を書く』CTA を描画しない", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, {
+        messages: [
+          { id: "m1", recipient: "妻へ", body: "ありがとう。", timing: "always" },
+        ],
+      }),
+    );
+
+    renderList(familyUser);
+
+    await waitFor(() => {
+      expect(screen.getByText("妻へ")).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("link", { name: /手紙を書く/ })).toBeNull();
+  });
+
+  it("family ロールで空のとき、CTA なしの EmptyState を描画する", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { messages: [] }));
+
+    renderList(familyUser);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("共有されている手紙はまだありません"),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("link", { name: /手紙を書く/ })).toBeNull();
   });
 
   it("500 エラー時、EmptyState と再試行ボタンが描画される", async () => {
