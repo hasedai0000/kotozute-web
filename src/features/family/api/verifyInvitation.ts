@@ -11,10 +11,12 @@ export type InvitationVerificationStatus =
 export type InvitationVerificationResult =
   | {
       status: "valid";
-      // 招待者名・家族名は valid のときのみ返す。無効ケースでは絶対に含めない
+      // 招待者名・家族名・招待メールは valid のときのみ返す。無効ケースでは絶対に含めない
       // （screen_spec §6：期限切れ・使用済み・不正は「何のノートか／誰の招待か」を漏らさない）。
+      // invitedEmail は #35 のアカウント違い警告で使う（無ければ safe default で警告を出さない）。
       inviterName: string;
       familyName?: string;
+      invitedEmail?: string;
     }
   | { status: "expired" }
   | { status: "used" }
@@ -24,6 +26,7 @@ type VerifyBody = {
   status?: unknown;
   inviterName?: unknown;
   familyName?: unknown;
+  invitedEmail?: unknown;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -41,7 +44,9 @@ const parseBody = (raw: unknown): InvitationVerificationResult | null => {
       typeof body.inviterName === "string" ? body.inviterName : "";
     const familyName =
       typeof body.familyName === "string" ? body.familyName : undefined;
-    return { status: "valid", inviterName, familyName };
+    const invitedEmail =
+      typeof body.invitedEmail === "string" ? body.invitedEmail : undefined;
+    return { status: "valid", inviterName, familyName, invitedEmail };
   }
   return null;
 };

@@ -52,6 +52,24 @@ describe("verifyInvitation", () => {
       status: "valid",
       inviterName: "山田 太郎",
       familyName: "山田家",
+      invitedEmail: undefined,
+    });
+  });
+
+  it("returns valid with invitedEmail when provided", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, {
+        status: "valid",
+        inviterName: "山田 太郎",
+        invitedEmail: "family@example.com",
+      }),
+    );
+
+    await expect(verifyInvitation("tok")).resolves.toEqual({
+      status: "valid",
+      inviterName: "山田 太郎",
+      familyName: undefined,
+      invitedEmail: "family@example.com",
     });
   });
 
@@ -61,12 +79,14 @@ describe("verifyInvitation", () => {
         status: "expired",
         // サーバが誤って情報を混ぜても、フロントの型で落とす
         inviterName: "should-not-appear",
+        invitedEmail: "should-not-appear@example.com",
       }),
     );
 
     const res = await verifyInvitation("tok");
     expect(res).toEqual({ status: "expired" });
     expect(res).not.toHaveProperty("inviterName");
+    expect(res).not.toHaveProperty("invitedEmail");
   });
 
   it("returns used", async () => {
