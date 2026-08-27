@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
+import { AcceptInvitationForm } from "@/features/family/components/AcceptInvitationForm";
 import { verifyInvitation } from "@/features/family/api/verifyInvitation";
 import { hasSessionCookieFromCookies } from "@/lib/auth/session-cookie";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 type Params = { token: string };
 
@@ -147,24 +148,33 @@ export default async function InvitationAcceptPage({
     );
   }
 
-  // 有効 + ログイン済み：#35 で「参加する」ボタン + useAcceptInvitation を実装予定。
-  // 本 Issue では最小プレースホルダに留める。
+  // ここまで来る時点で result は "valid" 以外ありえない（無効ステータスは上で return 済み、
+  // hadError は上で return 済み）。TS narrow のために明示チェックする。
+  if (!result || result.status !== "valid") {
+    return (
+      <CardShell>
+        <div className="space-y-4">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            一時的なエラー
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            時間をおいてもう一度お試しください。
+          </p>
+        </div>
+      </CardShell>
+    );
+  }
+
+  // 有効 + ログイン済み：#35 で本実装。招待者名の挨拶 / 参加ボタン / アカウント違い警告は
+  // client component 側で扱う（mutation と useMe の関係で "use client" が要る）。
   return (
     <CardShell>
-      <div className="space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight">招待の受諾</h1>
-        <p className="text-sm text-muted-foreground">
-          招待を受け取る準備ができています。
-        </p>
-        <Button
-          size="lg"
-          className="w-full"
-          disabled
-          data-testid="accept-invitation"
-        >
-          参加する（準備中）
-        </Button>
-      </div>
+      <AcceptInvitationForm
+        token={token}
+        inviterName={result.inviterName}
+        familyName={result.familyName}
+        invitedEmail={result.invitedEmail}
+      />
     </CardShell>
   );
 }
