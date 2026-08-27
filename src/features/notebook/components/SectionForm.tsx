@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { useIsOwner } from "@/features/auth/hooks/useIsOwner";
 
 import { useNoteFields } from "../api/useNoteFields";
 import { usePatchNoteFields } from "../api/usePatchNoteFields";
@@ -32,9 +33,7 @@ import {
 } from "../schema/section-fields";
 
 import { SavingIndicator } from "./SavingIndicator";
-
-// TODO(role): 家族ロール（family）は編集 UI を出さない。role 判定は別 Issue で
-// useAuth から取り、SectionForm 全体を出し分けるか読み取り専用ビューに切り替える。
+import { SectionFieldsView } from "./SectionFieldsView";
 
 type SectionFormProps = {
   slug: SectionSlug;
@@ -43,9 +42,13 @@ type SectionFormProps = {
 const SAVE_ERROR_TOAST = "保存できませんでした。時間をおいて再度お試しください";
 
 export function SectionForm({ slug }: SectionFormProps) {
+  const isOwner = useIsOwner();
   const def = SECTIONS[slug];
   if (def.fields.length === 0) {
     return null;
+  }
+  if (!isOwner) {
+    return <SectionFieldsView slug={slug} fields={def.fields} label={def.label} />;
   }
   return <SectionFormLoader slug={slug} fields={def.fields} label={def.label} />;
 }
