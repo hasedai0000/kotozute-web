@@ -15,6 +15,9 @@ vi.mock("sonner", () => ({
   },
 }));
 
+import type { AuthUser } from "@/features/auth/api/useMe";
+import { AuthContext, type AuthContextValue } from "@/providers/AuthProvider";
+
 import { SectionForm } from "./SectionForm";
 
 const jsonResponse = (status: number, body: unknown = null): Response =>
@@ -23,16 +26,30 @@ const jsonResponse = (status: number, body: unknown = null): Response =>
     headers: body === null ? undefined : { "Content-Type": "application/json" },
   });
 
-const makeWrapper = () => {
+const ownerUser: AuthUser = {
+  id: 1,
+  name: "Taro",
+  email: "a@b.c",
+  role: "owner",
+};
+
+const makeWrapper = (user: AuthUser | null = ownerUser) => {
   const client = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
       mutations: { retry: false },
     },
   });
+  const ctx: AuthContextValue = {
+    user,
+    isLoading: false,
+    refetch: async () => undefined,
+  };
   return function Wrapper({ children }: PropsWithChildren) {
     return (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <QueryClientProvider client={client}>
+        <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>
+      </QueryClientProvider>
     );
   };
 };
@@ -132,6 +149,25 @@ describe("SectionForm", () => {
       expect.stringContaining("保存できませんでした"),
     );
     expect(screen.getByRole("button", { name: /再試行/ })).toBeInTheDocument();
+  });
+
+  it("family ロールでは編集フォームを描画せず、値を読み取り専用で表示する", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, { fields: { full_name: "山田 太郎" } }),
+    );
+    const Wrapper = makeWrapper({
+      id: 2,
+      name: "Hanako",
+      email: "h@b.c",
+      role: "family",
+    });
+    render(<SectionForm slug="basic" />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("山田 太郎")).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("氏名")).toBeNull();
+    expect(screen.queryByLabelText("生年月日")).toBeNull();
   });
 
   it("re-sends the PATCH when 再試行 is clicked", async () => {

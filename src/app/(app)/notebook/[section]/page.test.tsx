@@ -3,7 +3,17 @@ import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { AuthUser } from "@/features/auth/api/useMe";
+import { AuthContext, type AuthContextValue } from "@/providers/AuthProvider";
+
 import NotebookSectionPage from "./page";
+
+const ownerUser: AuthUser = {
+  id: 1,
+  name: "Taro",
+  email: "a@b.c",
+  role: "owner",
+};
 
 const jsonResponse = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), {
@@ -28,8 +38,15 @@ const renderSection = async (section: string) => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  const ctx: AuthContextValue = {
+    user: ownerUser,
+    isLoading: false,
+    refetch: async () => undefined,
+  };
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>
+      <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>
+    </QueryClientProvider>
   );
   const jsx = await NotebookSectionPage({
     params: Promise.resolve({ section }),

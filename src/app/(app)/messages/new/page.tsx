@@ -1,5 +1,5 @@
-import { MessageForm } from "@/features/messages/components/MessageForm";
+import { NewMessagePage } from "@/features/messages/components/NewMessagePage";
 
-export default function NewMessagePage() {
-  return <MessageForm mode="create" />;
+export default function NewMessageRoute() {
+  return <NewMessagePage />;
 }

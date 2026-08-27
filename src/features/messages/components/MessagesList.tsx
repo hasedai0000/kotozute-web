@@ -6,6 +6,7 @@ import Link from "next/link";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsOwner } from "@/features/auth/hooks/useIsOwner";
 
 import { useMessages } from "../api/useMessages";
 
@@ -26,6 +27,7 @@ const NewMessageLink = () => (
 
 export function MessagesList() {
   const { data, isPending, isError, refetch } = useMessages();
+  const isOwner = useIsOwner();
 
   return (
     <section className="mx-auto flex w-full max-w-prose flex-col gap-6">
@@ -33,10 +35,12 @@ export function MessagesList() {
         <div className="flex flex-col gap-1">
           <h1 className="font-heading text-2xl leading-snug">大切な人へ</h1>
           <p className="text-sm text-muted-foreground">
-            言葉を残す場所。宛先を決めて、伝えたいことを綴ります。
+            {isOwner
+              ? "言葉を残す場所。宛先を決めて、伝えたいことを綴ります。"
+              : "共有されている手紙をご覧いただけます。"}
           </p>
         </div>
-        <NewMessageLink />
+        {isOwner ? <NewMessageLink /> : null}
       </header>
 
       {isPending ? (
@@ -64,9 +68,13 @@ export function MessagesList() {
       ) : data.messages.length === 0 ? (
         <EmptyState
           icon={<Mail className="size-6" aria-hidden="true" />}
-          title="まだ手紙がありません"
-          description="宛先を決めて、伝えたいことを綴りましょう。"
-          action={<NewMessageLink />}
+          title={isOwner ? "まだ手紙がありません" : "共有されている手紙はまだありません"}
+          description={
+            isOwner
+              ? "宛先を決めて、伝えたいことを綴りましょう。"
+              : undefined
+          }
+          action={isOwner ? <NewMessageLink /> : undefined}
         />
       ) : (
         <ul className="flex flex-col gap-4">

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/layout/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import { useIsOwner } from "@/features/auth/hooks/useIsOwner";
 
 import { useAddEntry } from "../api/useAddEntry";
 import { useDeleteEntry } from "../api/useDeleteEntry";
@@ -25,7 +26,41 @@ type SectionEntriesProps = {
   sensitive?: boolean;
 };
 
-export function SectionEntries({
+export function SectionEntries(props: SectionEntriesProps) {
+  const isOwner = useIsOwner();
+  if (!isOwner) {
+    return <SectionEntriesReadOnly {...props} />;
+  }
+  return <SectionEntriesOwner {...props} />;
+}
+
+function SectionEntriesReadOnly({
+  section,
+  categories,
+}: SectionEntriesProps) {
+  const { data } = useEntries(section);
+
+  if (categories.length === 0) return null;
+
+  const entriesByCategory = groupByCategory(data?.entries ?? []);
+
+  return (
+    <section aria-label="リスト項目" className="flex flex-col gap-8">
+      {categories.map((c) => (
+        <div key={c} className="flex flex-col gap-3">
+          <h2 className="text-lg font-medium">{CATEGORIES[c].label}</h2>
+          <EntryList
+            entries={entriesByCategory[c] ?? []}
+            category={c}
+            readOnly
+          />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function SectionEntriesOwner({
   section,
   categories,
   sensitive,

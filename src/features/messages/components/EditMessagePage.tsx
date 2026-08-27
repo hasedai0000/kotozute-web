@@ -5,17 +5,20 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsOwner } from "@/features/auth/hooks/useIsOwner";
 import { ApiError } from "@/lib/api";
 
 import { useMessage } from "../api/useMessage";
 
 import { MessageForm } from "./MessageForm";
+import { MessageView } from "./MessageView";
 
 type EditMessagePageProps = {
   id: string;
 };
 
 export function EditMessagePage({ id }: EditMessagePageProps) {
+  const isOwner = useIsOwner();
   const { data, isPending, isError, error, refetch } = useMessage(id);
 
   if (isPending) {
@@ -49,6 +52,10 @@ export function EditMessagePage({ id }: EditMessagePageProps) {
         }
       />
     );
+  }
+
+  if (!isOwner) {
+    return <MessageView message={data.message} />;
   }
 
   return <MessageForm mode="edit" initial={data.message} />;
