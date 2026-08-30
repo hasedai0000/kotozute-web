@@ -53,7 +53,7 @@ describe("useLogin helpers", () => {
   });
 
   describe("loginRequest", () => {
-    it("POSTs to /login with the XSRF header taken from cookie", async () => {
+    it("POSTs to /auth/login with the XSRF header taken from cookie", async () => {
       document.cookie = "XSRF-TOKEN=raw-token-value";
       fetchMock.mockResolvedValueOnce(jsonResponse(204));
 
@@ -61,7 +61,7 @@ describe("useLogin helpers", () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(url).toMatch(/\/login$/);
+      expect(url).toMatch(/\/auth\/login$/);
       expect(init.method).toBe("POST");
       const headers = new Headers(init.headers);
       expect(headers.get("X-XSRF-TOKEN")).toBe("raw-token-value");
@@ -114,7 +114,7 @@ describe("useLogin helpers", () => {
   });
 
   describe("mutation flow", () => {
-    it("calls CSRF then /login and invalidates the me query on success", async () => {
+    it("calls CSRF then /auth/login and invalidates the me query on success", async () => {
       // 1st: csrf, 2nd: login
       fetchMock
         .mockResolvedValueOnce(jsonResponse(204))
@@ -141,7 +141,7 @@ describe("useLogin helpers", () => {
       const [csrfUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
       const [loginUrl] = fetchMock.mock.calls[1] as [string, RequestInit];
       expect(csrfUrl).toMatch(/\/sanctum\/csrf-cookie$/);
-      expect(loginUrl).toMatch(/\/login$/);
+      expect(loginUrl).toMatch(/\/auth\/login$/);
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: queryKeys.auth.me,
       });

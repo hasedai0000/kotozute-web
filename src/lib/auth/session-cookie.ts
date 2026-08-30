@@ -1,8 +1,9 @@
-// Sanctum のセッション cookie 名は APP_NAME 由来で変わる（既定は `laravel_session`）。
+// Sanctum のセッション cookie 名は APP_NAME 由来で変わる。Laravel の config/session.php は
+// Str::slug(APP_NAME).'-session' で組み立てるため、区切りは常にハイフン。
 // httpOnly のため値は読めず、存在有無だけで「ログイン中かも」を一次判定する。
 // 実際の認可はサーバ側の 401 で確定させる。
-export const DEFAULT_SESSION_COOKIE = "laravel_session";
-export const SESSION_COOKIE_SUFFIX = "_session";
+export const DEFAULT_SESSION_COOKIE = "laravel-session";
+export const SESSION_COOKIE_SUFFIX = "-session";
 
 export type NamedCookie = { name: string };
 

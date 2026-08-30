@@ -9,7 +9,7 @@ import type { LoginInput } from "@/features/auth/schema/login";
 
 export async function loginRequest(input: LoginInput): Promise<void> {
   const token = readXsrfToken();
-  await apiFetch<void>("/login", {
+  await apiFetch<void>("/auth/login", {
     method: "POST",
     json: input,
     headers: token ? { "X-XSRF-TOKEN": token } : undefined,

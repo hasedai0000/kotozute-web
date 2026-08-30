@@ -38,7 +38,7 @@ describe("useRegister helpers", () => {
   });
 
   describe("registerRequest", () => {
-    it("POSTs to /register with password_confirmation (snake_case) and no passwordConfirmation key", async () => {
+    it("POSTs to /auth/register with password_confirmation (snake_case) and no passwordConfirmation key", async () => {
       document.cookie = "XSRF-TOKEN=raw-token-value";
       fetchMock.mockResolvedValueOnce(jsonResponse(204));
 
@@ -46,7 +46,7 @@ describe("useRegister helpers", () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(url).toMatch(/\/register$/);
+      expect(url).toMatch(/\/auth\/register$/);
       expect(init.method).toBe("POST");
 
       const headers = new Headers(init.headers);
@@ -87,7 +87,7 @@ describe("useRegister helpers", () => {
   });
 
   describe("mutation flow", () => {
-    it("calls CSRF then /register and invalidates the me query on success", async () => {
+    it("calls CSRF then /auth/register and invalidates the me query on success", async () => {
       // 1st: csrf, 2nd: register
       fetchMock
         .mockResolvedValueOnce(jsonResponse(204))
@@ -109,7 +109,7 @@ describe("useRegister helpers", () => {
       const [csrfUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
       const [registerUrl] = fetchMock.mock.calls[1] as [string, RequestInit];
       expect(csrfUrl).toMatch(/\/sanctum\/csrf-cookie$/);
-      expect(registerUrl).toMatch(/\/register$/);
+      expect(registerUrl).toMatch(/\/auth\/register$/);
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: queryKeys.auth.me,
       });

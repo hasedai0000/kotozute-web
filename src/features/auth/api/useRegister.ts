@@ -9,7 +9,7 @@ import type { RegisterInput } from "@/features/auth/schema/register";
 
 export async function registerRequest(input: RegisterInput): Promise<void> {
   const token = readXsrfToken();
-  await apiFetch<void>("/register", {
+  await apiFetch<void>("/auth/register", {
     method: "POST",
     // Laravel Fortify は snake_case の password_confirmation を要求する。
     json: {

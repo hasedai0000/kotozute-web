@@ -10,8 +10,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_* はビルド時に inline されるため build args で渡す。
+      # ${VAR} は compose 実行時に .env から解決される。
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     image: kotozute-web:local
-    container_name: kotozute-web
+    container_name: kotozute-web-app
     ports:
       - "3000:3000"
     env_file:

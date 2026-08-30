@@ -55,17 +55,17 @@ describe("middleware", () => {
     expect(res.url.searchParams.get("redirect")).toBe("/notebook/basic?tab=1");
   });
 
-  it("passes through when a laravel_session cookie exists", () => {
+  it("passes through when a laravel-session cookie exists", () => {
     const res = middleware(
-      makeReq("http://localhost:3000/dashboard", { laravel_session: "abc" }),
+      makeReq("http://localhost:3000/dashboard", { "laravel-session": "abc" }),
     );
 
     expect(res).toEqual(NextResponse.next());
   });
 
-  it("passes through when any *_session cookie exists (APP_NAME override)", () => {
+  it("passes through when any *-session cookie exists (APP_NAME override)", () => {
     const res = middleware(
-      makeReq("http://localhost:3000/dashboard", { kotozute_session: "abc" }),
+      makeReq("http://localhost:3000/dashboard", { "kotozute-session": "abc" }),
     );
 
     expect(res).toEqual(NextResponse.next());

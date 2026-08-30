@@ -7,14 +7,14 @@ describe("hasSessionCookieFromCookies", () => {
     expect(hasSessionCookieFromCookies([])).toBe(false);
   });
 
-  it("returns true when the default laravel_session cookie exists", () => {
-    expect(hasSessionCookieFromCookies([{ name: "laravel_session" }])).toBe(
+  it("returns true when the default laravel-session cookie exists", () => {
+    expect(hasSessionCookieFromCookies([{ name: "laravel-session" }])).toBe(
       true,
     );
   });
 
-  it("returns true when any *_session cookie exists (APP_NAME override)", () => {
-    expect(hasSessionCookieFromCookies([{ name: "kotozute_session" }])).toBe(
+  it("returns true when any *-session cookie exists (APP_NAME override)", () => {
+    expect(hasSessionCookieFromCookies([{ name: "kotozute-session" }])).toBe(
       true,
     );
   });

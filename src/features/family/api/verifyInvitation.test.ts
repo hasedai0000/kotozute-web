@@ -144,13 +144,13 @@ describe("verifyInvitation", () => {
     );
 
     await verifyInvitation("tok", {
-      cookieHeader: "laravel_session=abc; XSRF-TOKEN=xyz",
+      cookieHeader: "laravel-session=abc; XSRF-TOKEN=xyz",
     });
 
     const [, init] = fetchMock.mock.calls[0]!;
     const headers = new Headers((init as RequestInit)?.headers);
     expect(headers.get("Cookie")).toBe(
-      "laravel_session=abc; XSRF-TOKEN=xyz",
+      "laravel-session=abc; XSRF-TOKEN=xyz",
     );
   });
 
