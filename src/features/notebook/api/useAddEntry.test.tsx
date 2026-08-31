@@ -107,7 +107,9 @@ describe("useAddEntry (optimistic update + rollback)", () => {
 
   it("optimistically appends a temp entry then replaces it with server entry on success", async () => {
     const { client, key } = setup();
-    // fetch を手動で解決する deferred promise。onMutate 直後の temp 状態を確実に観測する。
+    // 1st: csrf-cookie。書き込み前に必ず取り直す（#79）。
+    fetchMock.mockResolvedValueOnce(jsonResponse(204));
+    // 2nd: POST /note-entries。手動で解決する deferred で temp 状態を確実に観測する。
     let resolveFetch!: (r: Response) => void;
     const pending = new Promise<Response>((res) => {
       resolveFetch = res;
@@ -151,6 +153,8 @@ describe("useAddEntry (optimistic update + rollback)", () => {
 
   it("rolls back to the previous cache on network failure", async () => {
     const { client, key } = setup();
+    // csrf-cookie は成功、POST でネットワーク失敗するケース。
+    fetchMock.mockResolvedValueOnce(jsonResponse(204));
     fetchMock.mockRejectedValueOnce(new TypeError("Network down"));
 
     const { result } = renderHook(() => useAddEntry("money"), {
@@ -169,5 +173,35 @@ describe("useAddEntry (optimistic update + rollback)", () => {
     const snap = client.getQueryData<NoteEntriesResponse>(key);
     expect(snap).toEqual({ entries: [] });
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith("追加できませんでした");
+  });
+
+  it("calls /sanctum/csrf-cookie before POST /note-entries (#79)", async () => {
+    const { client } = setup();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(204))
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          id: "srv-1",
+          category: "bank_account",
+          values: {},
+          timing: "always",
+        }),
+      );
+
+    const { result } = renderHook(() => useAddEntry("money"), {
+      wrapper: wrapWith(client),
+    });
+
+    act(() => {
+      result.current.mutate({ category: "bank_account", values: {} });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const [csrfUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [postUrl, postInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(csrfUrl).toMatch(/\/sanctum\/csrf-cookie$/);
+    expect(postUrl).toMatch(/\/note-entries\/money$/);
+    expect(postInit.method).toBe("POST");
   });
 });

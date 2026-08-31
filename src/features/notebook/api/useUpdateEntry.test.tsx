@@ -93,6 +93,8 @@ describe("useUpdateEntry (optimistic update + rollback)", () => {
 
   it("optimistically updates the entry and confirms on success", async () => {
     const { client, key } = setup();
+    // 1st: csrf-cookie（#79）、2nd: PATCH。
+    fetchMock.mockResolvedValueOnce(jsonResponse(204));
     fetchMock.mockResolvedValueOnce(
       jsonResponse(200, {
         ...initialEntry,
@@ -120,6 +122,8 @@ describe("useUpdateEntry (optimistic update + rollback)", () => {
 
   it("rolls back the entry values on failure", async () => {
     const { client, key } = setup();
+    // csrf-cookie は成功、PATCH でネットワーク失敗するケース。
+    fetchMock.mockResolvedValueOnce(jsonResponse(204));
     fetchMock.mockRejectedValueOnce(new TypeError("Network down"));
 
     const { result } = renderHook(() => useUpdateEntry("money"), {
@@ -135,5 +139,33 @@ describe("useUpdateEntry (optimistic update + rollback)", () => {
     const snap = client.getQueryData<NoteEntriesResponse>(key);
     expect(snap?.entries[0].values.bank_name).toBe("旧銀行");
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith("更新できませんでした");
+  });
+
+  it("calls /sanctum/csrf-cookie before PATCH /note-entries/:id (#79)", async () => {
+    const { client } = setup();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(204))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { ...initialEntry, values: { bank_name: "新" } }),
+      );
+
+    const { result } = renderHook(() => useUpdateEntry("money"), {
+      wrapper: wrapWith(client),
+    });
+
+    act(() => {
+      result.current.mutate({ id: "e1", values: { bank_name: "新" } });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const [csrfUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [patchUrl, patchInit] = fetchMock.mock.calls[1] as [
+      string,
+      RequestInit,
+    ];
+    expect(csrfUrl).toMatch(/\/sanctum\/csrf-cookie$/);
+    expect(patchUrl).toMatch(/\/note-entries\/money\/e1$/);
+    expect(patchInit.method).toBe("PATCH");
   });
 });

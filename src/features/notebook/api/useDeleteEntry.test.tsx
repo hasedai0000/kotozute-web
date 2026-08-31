@@ -95,6 +95,8 @@ describe("useDeleteEntry (optimistic remove + rollback)", () => {
 
   it("optimistically removes the entry on success", async () => {
     const { client, key } = setup();
+    // 1st: csrf-cookie（#79）、2nd: DELETE。
+    fetchMock.mockResolvedValueOnce(jsonResponse(204));
     fetchMock.mockResolvedValueOnce(jsonResponse(204));
 
     const { result } = renderHook(() => useDeleteEntry("money"), {
@@ -117,6 +119,8 @@ describe("useDeleteEntry (optimistic remove + rollback)", () => {
 
   it("rolls back removal when the request fails (DoD: 巻き戻る)", async () => {
     const { client, key } = setup();
+    // csrf-cookie は成功、DELETE でネットワーク失敗するケース。
+    fetchMock.mockResolvedValueOnce(jsonResponse(204));
     fetchMock.mockRejectedValueOnce(new TypeError("Network down"));
 
     const { result } = renderHook(() => useDeleteEntry("money"), {
@@ -132,5 +136,31 @@ describe("useDeleteEntry (optimistic remove + rollback)", () => {
     const snap = client.getQueryData<NoteEntriesResponse>(key);
     expect(snap?.entries).toEqual([entryA, entryB]);
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith("削除できませんでした");
+  });
+
+  it("calls /sanctum/csrf-cookie before DELETE /note-entries/:id (#79)", async () => {
+    const { client } = setup();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(204))
+      .mockResolvedValueOnce(jsonResponse(204));
+
+    const { result } = renderHook(() => useDeleteEntry("money"), {
+      wrapper: wrapWith(client),
+    });
+
+    act(() => {
+      result.current.mutate({ id: "e1" });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const [csrfUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [deleteUrl, deleteInit] = fetchMock.mock.calls[1] as [
+      string,
+      RequestInit,
+    ];
+    expect(csrfUrl).toMatch(/\/sanctum\/csrf-cookie$/);
+    expect(deleteUrl).toMatch(/\/note-entries\/money\/e1$/);
+    expect(deleteInit.method).toBe("DELETE");
   });
 });
