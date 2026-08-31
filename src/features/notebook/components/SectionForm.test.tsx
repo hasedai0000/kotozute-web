@@ -94,6 +94,8 @@ describe("SectionForm", () => {
 
   it("PATCHes /note-fields/basic after debounce and shows 保存しました", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(200, { fields: {} }));
+    // #79: 書き込み前に /sanctum/csrf-cookie を叩くようになった。
+    fetchMock.mockResolvedValueOnce(jsonResponse(204));
     fetchMock.mockResolvedValueOnce(jsonResponse(204));
 
     const Wrapper = makeWrapper();
@@ -126,6 +128,9 @@ describe("SectionForm", () => {
   it("keeps the input value and shows toast when PATCH fails (DoD)", async () => {
     fetchMock.mockImplementation(async (url, init) => {
       const method = (init as RequestInit | undefined)?.method ?? "GET";
+      const href = String(url);
+      // #79: 書き込み前に叩かれる /sanctum/csrf-cookie は 204 で成功させる。
+      if (href.includes("/sanctum/csrf-cookie")) return jsonResponse(204);
       if (method === "GET") return jsonResponse(200, { fields: {} });
       if (method === "PATCH") return jsonResponse(500);
       return jsonResponse(404);
@@ -172,7 +177,10 @@ describe("SectionForm", () => {
 
   it("re-sends the PATCH when 再試行 is clicked", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(200, { fields: {} }));
+    // #79: 各 PATCH の前に /sanctum/csrf-cookie が入るので 2 回分。
+    fetchMock.mockResolvedValueOnce(jsonResponse(204));
     fetchMock.mockResolvedValueOnce(jsonResponse(500));
+    fetchMock.mockResolvedValueOnce(jsonResponse(204));
     fetchMock.mockResolvedValueOnce(jsonResponse(204));
 
     const Wrapper = makeWrapper();
